@@ -20,39 +20,75 @@ class ApiFeatures {
     return this;
   }
 
+  // filter() {
+  //   const queryCopy = { ...this.queryStr };
+  //   const removeFields = ['keyword', 'page', 'limit'];
+  //   removeFields.forEach((key) => delete queryCopy[key]);
+
+  //   // Filter for price and rating
+
+  //   // let queryStr = JSON.stringify(queryCopy);
+
+  //   // queryStr = queryStr.replace(
+  //   //   /"(\w+)\[(\w+)\]":/g,
+  //   //   (_, key, op) => `"${'$' + op}":`
+  //   // );
+
+  //   // // wrap inside "price":{...}
+  //   // queryStr = queryStr.replace(/^{/, '{"price":{').replace(/}$/, '}}');
+
+  //   // // remove quotes around numbers
+  //   // queryStr = queryStr.replace(/"(\d+)"/g, '$1');
+  //   // console.log('querystr', queryStr);
+  //   // this.query = this.query.find(JSON.parse(queryStr));
+  //   let queryStr = JSON.stringify(queryCopy);
+
+  //   queryStr = queryStr.replace(
+  //     /"(\w+)\[(\w+)\]":/g,
+  //     (_, field, operator) => `"${field}":{"$${operator}":`
+  //   );
+
+  //   // Fix closing braces
+  //   queryStr = queryStr.replace(/}([^}]*)$/, '}$1');
+
+  //   // Remove quotes around numbers
+  //   queryStr = queryStr.replace(/"(\d+(?:\.\d+)?)"/g, '$1');
+
+  //   const filterObj = JSON.parse(queryStr);
+  //   this.query = this.query.find(filterObj);
+
+  //   return this;
+  // }
+
   filter() {
-    const queryCopy = { ...this.queryStr };
-    const removeFields = ['keyword', 'page', 'limit'];
-    removeFields.forEach((key) => delete queryCopy[key]);
+  const queryCopy = { ...this.queryStr };
+  const removeFields = ['keyword', 'page', 'limit'];
+  removeFields.forEach((key) => delete queryCopy[key]);
 
-    // Filter for price and rating
+  const filterObj = {};
 
-    let queryStr = JSON.stringify(queryCopy);
-    console.log('queryStr before', queryStr);
+  Object.keys(queryCopy).forEach((key) => {
+    if (key.includes('[')) {
+      const [field, operator] = key.split(/\[|\]/).filter(Boolean); // "price[gte]" => ["price", "gte"]
+      if (!filterObj[field]) filterObj[field] = {};
+      filterObj[field][`$${operator}`] = Number(queryCopy[key]);
+    } else {
+      filterObj[key] = queryCopy[key];
+    }
+  });
 
-    queryStr = queryStr.replace(
-      /"(\w+)\[(\w+)\]":/g,
-      (_, key, op) => `"${'$' + op}":`
-    );
+  this.query = this.query.find(filterObj);
+  return this;
+}
 
-    // wrap inside "price":{...}
-    queryStr = queryStr.replace(/^{/, '{"price":{').replace(/}$/, '}}');
 
-    // remove quotes around numbers
-    queryStr = queryStr.replace(/"(\d+)"/g, '$1');
-    console.log('querystr', queryStr);
-    this.query = this.query.find(JSON.parse(queryStr));
-    console.log('query', queryStr);
+  pagination(resultPerPage) {
+    const currentPage = Number(this.queryStr.page) || 1;
+    const skip = resultPerPage * (currentPage - 1);
+
+    this.query = this.query.limit(resultPerPage).skip(skip);
     return this;
   }
-
-  //   pagination(resultPerPage) {
-  //     const currentPage = Number(this.queryStr.page) || 1;
-  //     const skip = resultPerPage * (currentPage - 1);
-
-  //     this.query = this.query.limit(resultPerPage).skip(skip);
-  //     return this;
-  //   }
 }
 
 module.exports = ApiFeatures;
